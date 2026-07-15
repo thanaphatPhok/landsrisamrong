@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบยืม–คืนโฉนดที่ดิน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F1E4;
+    --paper-card:#FFFDF6;
+    --paper-card-edge:#EFE7D2;
+    --ink:#2A2620;
+    --ink-soft:#6B6255;
+    --forest:#1B4332;
+    --forest-dark:#123024;
+    --forest-light:#2D5F45;
+    --brass:#AD8A54;
+    --brass-light:#E6D3AC;
+    --brass-dark:#7C6539;
+    --stamp-red:#A83A32;
+    --stamp-red-bg:#F6E4E1;
+    --stamp-green:#3E7A4C;
+    --stamp-green-bg:#E4EFE3;
+    --line:#E2D9C0;
+    --shadow: 0 1px 2px rgba(43,38,26,.06), 0 6px 18px rgba(43,38,26,.07);
+    --shadow-lift: 0 10px 28px rgba(43,38,26,.14), 0 2px 6px rgba(43,38,26,.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 500px at 10% -10%, rgba(173,138,84,.08), transparent),
+      var(--paper);
+    color:var(--ink);
+    font-family:'Sarabun',sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 24px 80px;}
+
+  /* ---------- Header ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:20px;
+    background:var(--forest);
+    background-image:linear-gradient(160deg, var(--forest) 0%, var(--forest-dark) 100%);
+    border-radius:16px;
+    padding:22px 28px;
+    color:#F5EFDD;
+    box-shadow:var(--shadow-lift);
+    position:relative;
+    overflow:hidden;
+  }
+  .topbar::after{
+    content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;
+    border:1.5px solid rgba(230,211,172,.18);border-radius:50%;
+  }
+  .topbar::before{
+    content:"";position:absolute;right:20px;bottom:-70px;width:140px;height:140px;
+    border:1.5px solid rgba(230,211,172,.12);border-radius:50%;
+  }
+  .brand{display:flex;align-items:center;gap:16px;}
+  .brand-mark{
+    width:52px;height:52px;border-radius:12px;
+    background:rgba(230,211,172,.14);
+    border:1px solid rgba(230,211,172,.35);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .brand-mark svg{width:26px;height:26px;}
+  .brand h1{
+    font-family:'Noto Serif Thai',serif;font-weight:600;
+    font-size:22px;margin:0 0 4px;letter-spacing:.2px;
+  }
+  .brand p{margin:0;font-size:13.5px;color:#CBBF9D;}
+  .stats{display:flex;gap:14px;}
+  .stat{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(230,211,172,.25);
+    border-radius:12px;padding:10px 20px;text-align:center;min-width:96px;
+  }
+  .stat span{display:block;font-family:'Noto Serif Thai',serif;font-size:24px;font-weight:600;color:#F5EFDD;}
+  .stat label{font-size:11.5px;color:#C9BD9B;}
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    margin:22px 0 20px;
+  }
+  .search-box{
+    position:relative;flex:1;min-width:220px;
+  }
+  .search-box svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--ink-soft);}
+  .search-box input{
+    width:100%;padding:11px 14px 11px 38px;
+    border-radius:10px;border:1px solid var(--line);
+    background:var(--paper-card);font-family:'Sarabun',sans-serif;font-size:14.5px;color:var(--ink);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .search-box input:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(173,138,84,.15);}
+  .filters{display:flex;gap:6px;background:var(--paper-card);padding:4px;border-radius:10px;border:1px solid var(--line);}
+  .filters button{
+    border:none;background:transparent;padding:8px 14px;border-radius:7px;
+    font-family:'Sarabun',sans-serif;font-size:13.5px;color:var(--ink-soft);cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .filters button.active{background:var(--forest);color:#F5EFDD;}
+  .filters button:not(.active):hover{background:var(--paper);}
+  .btn-primary{
+    display:flex;align-items:center;gap:8px;
+    background:var(--forest);color:#F5EFDD;border:none;
+    padding:11px 18px;border-radius:10px;font-family:'Sarabun',sans-serif;font-weight:600;font-size:14.5px;
+    cursor:pointer;box-shadow:var(--shadow);transition:transform .12s, box-shadow .12s, background .15s;
+    white-space:nowrap;
+  }
+  .btn-primary:hover{background:var(--forest-light);box-shadow:var(--shadow-lift);}
+  .btn-primary:active{transform:scale(.97);}
+
+  /* ---------- Sync indicator ---------- */
+  .sync-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);margin:-8px 0 18px 2px;}
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--stamp-green);position:relative;}
+  .sync-dot::after{
+    content:"";position:absolute;inset:0;border-radius:50%;background:var(--stamp-green);
+    animation:pulseDot 2.2s ease-out infinite;
+  }
+  @keyframes pulseDot{0%{transform:scale(1);opacity:.6;}100%{transform:scale(2.6);opacity:0;}}
+
+  /* ---------- Grid ---------- */
+  .grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px;
+  }
+  .empty-state{
+    grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--ink-soft);
+    background:var(--paper-card);border:1px dashed var(--line);border-radius:16px;
+  }
+  .empty-state svg{width:44px;height:44px;margin-bottom:14px;color:var(--brass);}
+  .empty-state h3{font-family:'Noto Serif Thai',serif;color:var(--ink);margin:0 0 6px;font-size:17px;}
+  .empty-state p{margin:0;font-size:14px;}
+
+  .card{
+    position:relative;
+    background:var(--paper-card);
+    border:1px solid var(--paper-card-edge);
+    border-radius:14px;
+    padding:18px 18px 16px 22px;
+    box-shadow:var(--shadow);
+    transition:transform .18s ease, box-shadow .18s ease;
+    animation:cardIn .45s cubic-bezier(.2,.8,.3,1) both;
+  }
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);}
+  @keyframes cardIn{
+    from{opacity:0;transform:translateY(16px) scale(.97);}
+    to{opacity:1;transform:none;}
+  }
+  .card.removing{animation:cardOut .28s ease forwards;}
+  @keyframes cardOut{to{opacity:0;transform:scale(.92);}}
+
+  .tab{
+    position:absolute;left:0;top:16px;bottom:16px;width:5px;border-radius:0 3px 3px 0;
+  }
+  .card.status-borrowed .tab{background:var(--stamp-red);}
+  .card.status-returned .tab{background:var(--stamp-green);}
+
+  .card-head{margin-bottom:12px;}
+  .deed-label{font-size:11px;letter-spacing:.4px;color:var(--ink-soft);}
+  .deed-no{
+    font-family:'Noto Serif Thai',serif;font-weight:600;font-size:21px;margin:2px 0 0;color:var(--forest-dark);
+  }
+
+  .card-meta{margin:0 0 14px;display:grid;gap:7px;}
+  .card-meta div{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;border-bottom:1px dashed var(--line);padding-bottom:6px;}
+  .card-meta dt{color:var(--ink-soft);}
+  .card-meta dd{margin:0;font-weight:500;text-align:right;}
+
+  .card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+  .stamp{
+    font-family:'Noto Serif Thai',serif;font-weight:700;font-size:12.5px;
+    padding:5px 12px;border-radius:999px;border:1.5px solid transparent;
+    display:inline-block;transform:rotate(-4deg);letter-spacing:.3px;
+  }
+  .stamp-pending{color:var(--stamp-red);border-color:var(--stamp-red);background:var(--stamp-red-bg);}
+  .stamp-returned{color:var(--stamp-green);border-color:var(--stamp-green);background:var(--stamp-green-bg);}
+  .stamp.just-stamped{animation:stampIn .5s cubic-bezier(.25,1.6,.4,1) both;}
+  @keyframes stampIn{
+    0%{transform:scale(2.4) rotate(-16deg);opacity:0;}
+    55%{transform:scale(.88) rotate(-6deg);opacity:1;}
+    100%{transform:scale(1) rotate(-4deg);opacity:1;}
+  }
+  .card.just-stamped{animation:cardThud .35s ease .12s both;}
+  @keyframes cardThud{
+    0%{transform:translateX(0);}
+    30%{transform:translateX(-3px) rotate(-.3deg);}
+    60%{transform:translateX(3px) rotate(.3deg);}
+    100%{transform:translateX(0);}
+  }
+
+  .icon-btn{
+    border:1px solid var(--line);background:var(--paper-card);color:var(--ink-soft);
+    width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+  }
+  .icon-btn:hover{background:var(--stamp-red-bg);color:var(--stamp-red);border-color:var(--stamp-red);}
+  .icon-btn svg{width:15px;height:15px;}
+
+  .return-btn{
+    border:none;background:var(--brass);color:#3B2E14;font-family:'Sarabun',sans-serif;font-weight:600;
+    font-size:13px;padding:8px 14px;border-radius:8px;cursor:pointer;transition:background .15s, transform .12s;
+  }
+  .return-btn:hover{background:var(--brass-light);}
+  .return-btn:active{transform:scale(.96);}
+  .foot-actions{display:flex;align-items:center;gap:8px;margin-left:auto;}
+
+  /* ---------- Modal ---------- */
+  .backdrop{
+    position:fixed;inset:0;background:rgba(24,20,12,.45);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:50;
+  }
+  .backdrop.show{opacity:1;pointer-events:auto;}
+  .modal{
+    background:var(--paper-card);border-radius:16px;width:100%;max-width:440px;
+    padding:26px 26px 22px;box-shadow:var(--shadow-lift);
+    transform:translateY(18px) scale(.97);opacity:0;transition:transform .25s cubic-bezier(.2,.8,.3,1), opacity .25s;
+  }
+  .backdrop.show .modal{transform:none;opacity:1;}
+  .modal h2{font-family:'Noto Serif Thai',serif;font-size:19px;margin:0 0 4px;color:var(--forest-dark);}
+  .modal .modal-sub{margin:0 0 18px;font-size:13px;color:var(--ink-soft);}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;color:var(--ink-soft);margin-bottom:5px;}
+  .field input{
+    width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);
+    font-family:'Sarabun',sans-serif;font-size:14.5px;color:var(--ink);background:var(--paper);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .field input:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(173,138,84,.15);background:#fff;}
+  .field .err{color:var(--stamp-red);font-size:12px;margin-top:4px;display:none;}
+  .field.invalid input{border-color:var(--stamp-red);}
+  .field.invalid .err{display:block;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+  .btn-ghost{
+    border:1px solid var(--line);background:transparent;color:var(--ink-soft);
+    padding:10px 16px;border-radius:9px;font-family:'Sarabun',sans-serif;font-size:14px;cursor:pointer;
+    transition:background .15s;
+  }
+  .btn-ghost:hover{background:var(--paper);}
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+    background:var(--forest-dark);color:#F5EFDD;padding:12px 20px;border-radius:10px;
+    font-size:14px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lift);
+    opacity:0;pointer-events:none;transition:transform .28s cubic-bezier(.2,.8,.3,1), opacity .28s;z-index:60;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+  .toast svg{width:16px;height:16px;color:#8FD3A6;flex-shrink:0;}
+
+  @media (max-width:640px){
+    .topbar{flex-direction:column;align-items:flex-start;}
+    .stats{width:100%;}
+    .stat{flex:1;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#E6D3AC" stroke-width="1.6"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
+      </div>
+      <div>
+        <h1>ระบบยืม–คืนโฉนดที่ดิน</h1>
+        <p>บันทึกการยืมเอกสาร ติดตามสถานะคืน แบบเรียลไทม์ เห็นข้อมูลตรงกันทุกคน</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span id="stat-borrowed">0</span><label>ยืมอยู่</label></div>
+      <div class="stat"><span id="stat-returned">0</span><label>คืนแล้ว</label></div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="search" placeholder="ค้นหาเลขโฉนด, ผู้ยืม หรือ ตำบล...">
+    </div>
+    <div class="filters" id="filters">
+      <button data-filter="all" class="active">ทั้งหมด</button>
+      <button data-filter="borrowed">ยืมอยู่</button>
+      <button data-filter="returned">คืนแล้ว</button>
+    </div>
+    <button class="icon-btn" id="settings-btn" aria-label="ตั้งค่าการแจ้งเตือนอีเมล" style="width:42px;height:42px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
+    <button class="btn-primary" id="add-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:15px;height:15px;"><path d="M12 5v14M5 12h14"/></svg>
+      เพิ่มรายการยืม
+    </button>
+  </div>
+
+  <div class="sync-row"><span class="sync-dot"></span><span id="sync-text">ข้อมูลซิงค์แบบเรียลไทม์กับทุกคนที่เปิดหน้านี้</span></div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="backdrop" id="backdrop">
+  <div class="modal">
+    <h2>เพิ่มรายการยืมโฉนดที่ดิน</h2>
+    <p class="modal-sub">กรอกข้อมูลให้ครบ ระบบจะบันทึกและแสดงผลให้ทุกคนเห็นทันที</p>
+    <form id="form">
+      <div class="field" data-field="deedNo">
+        <label>เลขโฉนดที่ดิน</label>
+        <input name="deedNo" placeholder="เช่น 12345">
+        <div class="err">กรุณากรอกเลขโฉนดที่ดิน</div>
+      </div>
+      <div class="field" data-field="surveyPage">
+        <label>เลขหน้าสำรวจ</label>
+        <input name="surveyPage" placeholder="เช่น 88">
+        <div class="err">กรุณากรอกเลขหน้าสำรวจ</div>
+      </div>
+      <div class="field" data-field="subdistrict">
+        <label>ตำบล</label>
+        <input name="subdistrict" placeholder="เช่น บางกระสอ">
+        <div class="err">กรุณากรอกตำบล</div>
+      </div>
+      <div class="field" data-field="borrowerName">
+        <label>ชื่อผู้ยืม</label>
+        <input name="borrowerName" placeholder="ชื่อ-นามสกุล">
+        <div class="err">กรุณากรอกชื่อผู้ยืม</div>
+      </div>
+      <div class="field" data-field="borrowDate">
+        <label>วันที่ยืม</label>
+        <input type="date" name="borrowDate">
+        <div class="err">กรุณาเลือกวันที่ยืม</div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="cancel-btn">ยกเลิก</button>
+        <button type="submit" class="btn-primary" id="save-btn">บันทึก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="backdrop" id="settings-backdrop">
+  <div class="modal">
+    <h2>แจ้งเตือนทางอีเมล</h2>
+    <p class="modal-sub">เมื่อมีคนบันทึกรายการยืมใหม่ ระบบจะส่งข้อมูลไปยัง endpoint นี้เพื่อให้ส่งอีเมลแจ้งเตือน</p>
+    <div class="field" data-field="endpoint">
+      <label>Formspree endpoint URL</label>
+      <input id="settings-endpoint" placeholder="https://formspree.io/f/xxxxxxxx">
+      <div class="err">กรุณากรอก endpoint ให้ถูกต้อง (ขึ้นต้นด้วย https://)</div>
+    </div>
+    <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin:-4px 0 16px;">
+      วิธีตั้งค่า: สมัครฟรีที่ formspree.io → สร้างฟอร์มใหม่ → คัดลอกลิงก์ endpoint (เช่น https://formspree.io/f/xxxxxxxx) มาวางในช่องนี้ → อีเมลแจ้งเตือนจะส่งไปยังอีเมลที่ใช้สมัคร Formspree ทุกครั้งที่มีการบันทึกรายการยืมใหม่ ตั้งค่าเพียงครั้งเดียว ใช้ได้กับทุกคนที่เปิดหน้านี้
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="settings-cancel-btn">ยกเลิก</button>
+      <button type="button" class="btn-primary" id="settings-save-btn">บันทึกการตั้งค่า</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" id="toast-icon-ok"><path d="M20 6L9 17l-5-5"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" id="toast-icon-err" style="display:none;color:#E39C93;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+  <span id="toast-text">บันทึกแล้ว</span>
+</div>
+
+<script>
+const STORAGE_KEY = 'land-deed-records';
+const CONFIG_KEY = 'land-deed-notify-config';
+let records = [];
+let notifyConfig = { endpoint: 'https://formspree.io/f/xlgqdzwn' };
+let lastSnapshot = '';
+let filter = 'all';
+let searchTerm = '';
+let justAddedId = null;
+let justStampedId = null;
+let hasSharedStorage = typeof window.storage !== 'undefined';
+let usingFallback = false;
+
+const grid = document.getElementById('grid');
+const backdrop = document.getElementById('backdrop');
+const form = document.getElementById('form');
+const toast = document.getElementById('toast');
+const toastText = document.getElementById('toast-text');
+const settingsBackdrop = document.getElementById('settings-backdrop');
+const settingsEndpointInput = document.getElementById('settings-endpoint');
+const syncText = document.getElementById('sync-text');
+
+function todayStr(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+function fmtDate(iso){
+  if(!iso) return '-';
+  const [y,m,d] = iso.split('-');
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${parseInt(y)+543}`;
+}
+
+/* ---------- Storage adapter: shared storage with a local fallback ----------
+   If window.storage is unavailable (e.g. file opened outside claude.ai),
+   or any call to it fails, fall back to this browser's localStorage so
+   saving still always works — it just won't sync to other people. */
+function localGet(key){
+  try{
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function localSet(key, value){
+  window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(()=>reject(new Error('timeout')), ms))
+  ]);
+}
+
+async function loadRecords(){
+  if(hasSharedStorage){
+    try{
+      const res = await withTimeout(window.storage.get(STORAGE_KEY, true), 6000);
+      usingFallback = false;
+      return res ? JSON.parse(res.value) : [];
+    }catch(e){
+      // key not found yet, storage failed, or timed out — try local fallback
+      console.error('loadRecords: shared storage failed, using local fallback', e);
+      usingFallback = true;
+    }
+  } else {
+    usingFallback = true;
+  }
+  return localGet(STORAGE_KEY) || [];
+}
+
+async function saveRecords(data){
+  if(hasSharedStorage && !usingFallback){
+    try{
+      await withTimeout(window.storage.set(STORAGE_KEY, JSON.stringify(data), true), 6000);
+      localSet(STORAGE_KEY, data); // keep a local mirror too
+      return;
+    }catch(e){
+      console.error('saveRecords: shared storage failed, using local fallback', e);
+      usingFallback = true;
+    }
+  }
+  localSet(STORAGE_KEY, data);
+}
+
+async function loadConfig(){
+  if(hasSharedStorage){
+    try{
+      const res = await withTimeout(window.storage.get(CONFIG_KEY, true), 6000);
+      if(res) return JSON.parse(res.value);
+    }catch(e){
+      // no config saved yet, or timed out — seed the shared default so everyone gets it
+      const seeded = { endpoint: 'https://formspree.io/f/xlgqdzwn' };
+      try{ await withTimeout(window.storage.set(CONFIG_KEY, JSON.stringify(seeded), true), 6000); }catch(e2){}
+      return seeded;
+    }
+  }
+  return localGet(CONFIG_KEY) || { endpoint: 'https://formspree.io/f/xlgqdzwn' };
+}
+
+async function saveConfig(cfg){
+  if(hasSharedStorage){
+    try{
+      await withTimeout(window.storage.set(CONFIG_KEY, JSON.stringify(cfg), true), 6000);
+    }catch(e){ console.error('saveConfig: shared storage failed', e); }
+  }
+  localSet(CONFIG_KEY, cfg);
+}
+
+function updateSyncBanner(){
+  if(usingFallback){
+    syncText.textContent = 'บันทึกเฉพาะเครื่องนี้ (ไม่สามารถซิงค์กับผู้อื่นได้ในขณะนี้)';
+  } else {
+    syncText.textContent = 'ข้อมูลซิงค์แบบเรียลไทม์กับทุกคนที่เปิดหน้านี้';
+  }
+}
+
+/* ---------- Email notification via Formspree ---------- */
+async function notifyByEmail(record){
+  if(!notifyConfig.endpoint) return { skipped: true };
+  try{
+    const res = await fetch(notifyConfig.endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        subject: `มีการยืมโฉนดที่ดิน เลขที่ ${record.deedNo}`,
+        message:
+          `เลขโฉนดที่ดิน: ${record.deedNo}\n` +
+          `เลขหน้าสำรวจ: ${record.surveyPage}\n` +
+          `ตำบล: ${record.subdistrict}\n` +
+          `ผู้ยืม: ${record.borrowerName}\n` +
+          `วันที่ยืม: ${fmtDate(record.borrowDate)}`
+      })
+    });
+    return { ok: res.ok };
+  }catch(e){
+    return { ok: false };
+  }
+}
+
+function showToast(msg, isError){
+  toastText.textContent = msg;
+  document.getElementById('toast-icon-ok').style.display = isError ? 'none' : 'block';
+  document.getElementById('toast-icon-err').style.display = isError ? 'block' : 'none';
+  toast.style.background = isError ? 'var(--stamp-red)' : 'var(--forest-dark)';
+  toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>toast.classList.remove('show'), isError ? 3600 : 2400);
+}
+
+/* ---------- Settings modal ---------- */
+function openSettings(){
+  settingsEndpointInput.value = notifyConfig.endpoint || '';
+  document.querySelector('#settings-backdrop .field').classList.remove('invalid');
+  settingsBackdrop.classList.add('show');
+}
+function closeSettings(){
+  settingsBackdrop.classList.remove('show');
+}
+document.getElementById('settings-btn').addEventListener('click', openSettings);
+document.getElementById('settings-cancel-btn').addEventListener('click', closeSettings);
+settingsBackdrop.addEventListener('click', e=>{ if(e.target === settingsBackdrop) closeSettings(); });
+document.getElementById('settings-save-btn').addEventListener('click', async ()=>{
+  const val = settingsEndpointInput.value.trim();
+  const field = document.querySelector('#settings-backdrop .field');
+  if(val && !/^https:\/\//.test(val)){
+    field.classList.add('invalid');
+    return;
+  }
+  field.classList.remove('invalid');
+  notifyConfig.endpoint = val;
+  try{
+    await saveConfig(notifyConfig);
+    showToast(val ? 'ตั้งค่าการแจ้งเตือนอีเมลแล้ว' : 'ปิดการแจ้งเตือนอีเมลแล้ว');
+    closeSettings();
+  }catch(e){
+    showToast('บันทึกการตั้งค่าไม่สำเร็จ ลองใหม่อีกครั้ง', true);
+  }
+});
+
+function matchesFilter(r){
+  if(filter === 'borrowed') return !r.returnDate;
+  if(filter === 'returned') return !!r.returnDate;
+  return true;
+}
+function matchesSearch(r){
+  if(!searchTerm) return true;
+  const s = searchTerm.toLowerCase();
+  return r.deedNo.toLowerCase().includes(s) || r.borrowerName.toLowerCase().includes(s) || r.subdistrict.toLowerCase().includes(s);
+}
+
+function render(){
+  const list = records
+    .filter(matchesFilter)
+    .filter(matchesSearch)
+    .sort((a,b)=> b.createdAt - a.createdAt);
+
+  document.getElementById('stat-borrowed').textContent = records.filter(r=>!r.returnDate).length;
+  document.getElementById('stat-returned').textContent = records.filter(r=>r.returnDate).length;
+
+  if(list.length === 0){
+    grid.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16v16H4z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
+        <h3>ยังไม่มีรายการ</h3>
+        <p>กด "เพิ่มรายการยืม" เพื่อเริ่มบันทึกรายการแรก</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(r => {
+    const returned = !!r.returnDate;
+    const cardClasses = ['card', returned ? 'status-returned' : 'status-borrowed'];
+    if(r.id === justAddedId) cardClasses.push('card-new');
+    if(r.id === justStampedId) cardClasses.push('just-stamped');
+    const stampClass = ['stamp', returned ? 'stamp-returned' : 'stamp-pending'];
+    if(r.id === justStampedId) stampClass.push('just-stamped');
+    return `
+    <article class="${cardClasses.join(' ')}" data-id="${r.id}">
+      <div class="tab"></div>
+      <div class="card-head">
+        <span class="deed-label">เลขโฉนดที่ดิน</span>
+        <h3 class="deed-no">${escapeHtml(r.deedNo)}</h3>
+      </div>
+      <dl class="card-meta">
+        <div><dt>เลขหน้าสำรวจ</dt><dd>${escapeHtml(r.surveyPage)}</dd></div>
+        <div><dt>ตำบล</dt><dd>${escapeHtml(r.subdistrict)}</dd></div>
+        <div><dt>ผู้ยืม</dt><dd>${escapeHtml(r.borrowerName)}</dd></div>
+        <div><dt>วันที่ยืม</dt><dd>${fmtDate(r.borrowDate)}</dd></div>
+        <div><dt>วันที่คืน</dt><dd>${returned ? fmtDate(r.returnDate) : '-'}</dd></div>
+      </dl>
+      <div class="card-foot">
+        <span class="${stampClass.join(' ')}">${returned ? 'คืนแล้ว' : 'ยังไม่คืน'}</span>
+        <div class="foot-actions">
+          ${returned ? '' : `<button class="return-btn" data-action="return" data-id="${r.id}">ทำเครื่องหมายคืนแล้ว</button>`}
+          <button class="icon-btn" data-action="delete" data-id="${r.id}" aria-label="ลบรายการ">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+          </button>
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+
+  justAddedId = null;
+  justStampedId = null;
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+async function syncFromStorage(silent){
+  const fresh = await loadRecords();
+  const snap = JSON.stringify(fresh);
+  if(snap !== lastSnapshot){
+    lastSnapshot = snap;
+    records = fresh;
+    render();
+    if(silent) showToast('มีการอัปเดตข้อมูลจากผู้ใช้อื่น');
+  }
+}
+
+async function persist(){
+  lastSnapshot = JSON.stringify(records);
+  await saveRecords(records);
+}
+
+/* ---------- Modal ---------- */
+function openModal(){
+  form.reset();
+  form.querySelector('[name="borrowDate"]').value = todayStr();
+  document.querySelectorAll('.field').forEach(f=>f.classList.remove('invalid'));
+  backdrop.classList.add('show');
+  setTimeout(()=>form.querySelector('[name="deedNo"]').focus(), 200);
+}
+function closeModal(){
+  backdrop.classList.remove('show');
+}
+document.getElementById('add-btn').addEventListener('click', openModal);
+document.getElementById('cancel-btn').addEventListener('click', closeModal);
+backdrop.addEventListener('click', e=>{ if(e.target === backdrop) closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeModal(); });
+
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(form).entries());
+  let valid = true;
+  document.querySelectorAll('.field').forEach(f=>f.classList.remove('invalid'));
+  for(const key of ['deedNo','surveyPage','subdistrict','borrowerName','borrowDate']){
+    if(!data[key] || !data[key].trim()){
+      document.querySelector(`.field[data-field="${key}"]`).classList.add('invalid');
+      valid = false;
+    }
+  }
+  if(!valid) return;
+
+  const saveBtn = document.getElementById('save-btn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'กำลังบันทึก...';
+
+  const newRecord = {
+    id: 'rec-' + Date.now() + '-' + Math.random().toString(36).slice(2,7),
+    deedNo: data.deedNo.trim(),
+    surveyPage: data.surveyPage.trim(),
+    subdistrict: data.subdistrict.trim(),
+    borrowerName: data.borrowerName.trim(),
+    borrowDate: data.borrowDate,
+    returnDate: '',
+    createdAt: Date.now()
+  };
+
+  try{
+    records.push(newRecord);
+    justAddedId = newRecord.id;
+    await persist();
+    render();
+    closeModal();
+    updateSyncBanner();
+    showToast('บันทึกรายการยืมแล้ว');
+    notifyByEmail(newRecord).then(result=>{
+      if(result && result.ok === false){
+        showToast('บันทึกรายการสำเร็จ แต่ส่งอีเมลแจ้งเตือนไม่สำเร็จ', true);
+      }
+    });
+  }catch(err){
+    records = records.filter(r => r.id !== newRecord.id);
+    showToast('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', true);
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'บันทึก';
+  }
+});
+
+/* ---------- Grid actions ---------- */
+grid.addEventListener('click', async (e)=>{
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  const rec = records.find(r=>r.id === id);
+  if(!rec) return;
+
+  try{
+    if(action === 'return'){
+      const prevDate = rec.returnDate;
+      rec.returnDate = todayStr();
+      justStampedId = id;
+      await persist();
+      render();
+      showToast('ทำเครื่องหมายคืนแล้ว');
+    } else if(action === 'delete'){
+      const cardEl = grid.querySelector(`.card[data-id="${id}"]`);
+      if(cardEl){
+        cardEl.classList.add('removing');
+        await new Promise(res=>setTimeout(res, 240));
+      }
+      const backup = records;
+      records = records.filter(r=>r.id !== id);
+      await persist();
+      render();
+      showToast('ลบรายการแล้ว');
+    }
+  }catch(err){
+    showToast('ทำรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', true);
+    render();
+  }
+});
+
+/* ---------- Toolbar ---------- */
+document.getElementById('filters').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-filter]');
+  if(!btn) return;
+  filter = btn.dataset.filter;
+  document.querySelectorAll('#filters button').forEach(b=>b.classList.toggle('active', b===btn));
+  render();
+});
+document.getElementById('search').addEventListener('input', e=>{
+  searchTerm = e.target.value.trim();
+  render();
+});
+
+/* ---------- Init + polling for realtime sync ---------- */
+(async function init(){
+  records = await loadRecords();
+  notifyConfig = await loadConfig();
+  lastSnapshot = JSON.stringify(records);
+  updateSyncBanner();
+  render();
+  if(!usingFallback){
+    setInterval(()=>syncFromStorage(true), 4000);
+  }
+})();
+</script>
+</body>
+</html>
