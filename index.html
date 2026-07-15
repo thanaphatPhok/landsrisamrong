@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
     --paper:#F6F1E4;
@@ -235,7 +237,8 @@
   }
   .field input:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(173,138,84,.15);background:#fff;}
   .field .err{color:var(--stamp-red);font-size:12px;margin-top:4px;display:none;}
-  .field.invalid input{border-color:var(--stamp-red);}
+  .field.invalid input, .field.invalid textarea{border-color:var(--stamp-red);}
+  .field textarea:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(173,138,84,.15);background:#fff;}
   .field.invalid .err{display:block;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
   .btn-ghost{
@@ -300,7 +303,7 @@
     </button>
   </div>
 
-  <div class="sync-row"><span class="sync-dot"></span><span id="sync-text">ข้อมูลซิงค์แบบเรียลไทม์กับทุกคนที่เปิดหน้านี้</span></div>
+  <div class="sync-row"><span class="sync-dot" id="sync-dot"></span><span id="sync-text">กำลังเชื่อมต่อ...</span><button id="setup-db-btn" style="display:none;margin-left:6px;border:none;background:none;color:var(--forest);font-weight:600;font-size:12px;text-decoration:underline;cursor:pointer;">ตั้งค่าฐานข้อมูลกลาง</button></div>
 
   <div class="grid" id="grid"></div>
 </div>
@@ -344,17 +347,34 @@
 </div>
 
 <div class="backdrop" id="settings-backdrop">
-  <div class="modal">
-    <h2>แจ้งเตือนทางอีเมล</h2>
-    <p class="modal-sub">เมื่อมีคนบันทึกรายการยืมใหม่ ระบบจะส่งข้อมูลไปยัง endpoint นี้เพื่อให้ส่งอีเมลแจ้งเตือน</p>
+  <div class="modal" style="max-width:520px;max-height:85vh;overflow-y:auto;">
+    <h2>ฐานข้อมูลกลาง (ให้ทุกคนเห็นข้อมูลตรงกัน)</h2>
+    <p class="modal-sub">เพื่อให้ทุกคนที่เปิดไฟล์นี้ ไม่ว่าจะเปิดจากเครื่องไหน เห็นข้อมูลชุดเดียวกันแบบเรียลไทม์ ต้องเชื่อมต่อฐานข้อมูลกลางฟรีของ Google (Firebase) ครั้งเดียว แล้วใช้ได้กับทุกคนตลอดไป</p>
+    <ol style="font-size:12.5px;color:var(--ink-soft);line-height:1.8;padding-left:18px;margin:0 0 14px;">
+      <li>ไปที่ <b>console.firebase.google.com</b> → สร้างโปรเจกต์ใหม่ (ฟรี)</li>
+      <li>เมนูซ้าย → <b>Build → Realtime Database</b> → Create Database → เลือกโหมด <b>Test mode</b></li>
+      <li>เมนูซ้าย → <b>Project settings</b> (รูปเฟือง) → เลื่อนลงหา "Your apps" → กด <b>&lt;/&gt; (Web)</b> → ตั้งชื่อแอป → จะได้โค้ด <code>firebaseConfig = &#123; ... &#125;</code></li>
+      <li>คัดลอกเฉพาะส่วน <code>&#123; apiKey: "...", ... &#125;</code> มาวางในช่องด้านล่าง</li>
+    </ol>
+    <div class="field" data-field="fbconfig">
+      <label>วางค่า firebaseConfig ที่นี่</label>
+      <textarea id="settings-fbconfig" rows="6" placeholder='{
+  apiKey: "AIza...",
+  authDomain: "xxx.firebaseapp.com",
+  databaseURL: "https://xxx-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "xxx",
+  ...
+}' style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);font-family:monospace;font-size:12.5px;color:var(--ink);background:var(--paper);resize:vertical;"></textarea>
+      <div class="err">วางข้อมูลไม่ถูกต้อง ตรวจสอบรูปแบบอีกครั้ง</div>
+    </div>
+    <p id="fb-status" style="font-size:12.5px;margin:-6px 0 4px;"></p>
+    <hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
+    <h2 style="font-size:15px;">แจ้งเตือนทางอีเมล (ไม่บังคับ)</h2>
     <div class="field" data-field="endpoint">
       <label>Formspree endpoint URL</label>
       <input id="settings-endpoint" placeholder="https://formspree.io/f/xxxxxxxx">
       <div class="err">กรุณากรอก endpoint ให้ถูกต้อง (ขึ้นต้นด้วย https://)</div>
     </div>
-    <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin:-4px 0 16px;">
-      วิธีตั้งค่า: สมัครฟรีที่ formspree.io → สร้างฟอร์มใหม่ → คัดลอกลิงก์ endpoint (เช่น https://formspree.io/f/xxxxxxxx) มาวางในช่องนี้ → อีเมลแจ้งเตือนจะส่งไปยังอีเมลที่ใช้สมัคร Formspree ทุกครั้งที่มีการบันทึกรายการยืมใหม่ ตั้งค่าเพียงครั้งเดียว ใช้ได้กับทุกคนที่เปิดหน้านี้
-    </p>
     <div class="modal-actions">
       <button type="button" class="btn-ghost" id="settings-cancel-btn">ยกเลิก</button>
       <button type="button" class="btn-primary" id="settings-save-btn">บันทึกการตั้งค่า</button>
@@ -371,6 +391,11 @@
 <script>
 const STORAGE_KEY = 'land-deed-records';
 const CONFIG_KEY = 'land-deed-notify-config';
+const FB_CONFIG_KEY = 'land-deed-firebase-config';
+// If you want every teammate to connect automatically without any setup,
+// paste your firebaseConfig object here (the same one used in the settings modal).
+const FIREBASE_CONFIG_DEFAULT = null; // e.g. { apiKey:"...", authDomain:"...", databaseURL:"...", projectId:"..." }
+
 let records = [];
 let notifyConfig = { endpoint: 'https://formspree.io/f/xlgqdzwn' };
 let lastSnapshot = '';
@@ -380,6 +405,8 @@ let justAddedId = null;
 let justStampedId = null;
 let hasSharedStorage = typeof window.storage !== 'undefined';
 let usingFallback = false;
+let firebaseReady = false;
+let fbDb = null;
 
 const grid = document.getElementById('grid');
 const backdrop = document.getElementById('backdrop');
@@ -388,7 +415,11 @@ const toast = document.getElementById('toast');
 const toastText = document.getElementById('toast-text');
 const settingsBackdrop = document.getElementById('settings-backdrop');
 const settingsEndpointInput = document.getElementById('settings-endpoint');
+const settingsFbConfigInput = document.getElementById('settings-fbconfig');
+const fbStatusEl = document.getElementById('fb-status');
 const syncText = document.getElementById('sync-text');
+const syncDot = document.getElementById('sync-dot');
+const setupDbBtn = document.getElementById('setup-db-btn');
 
 function todayStr(){
   const d = new Date();
@@ -400,6 +431,57 @@ function fmtDate(iso){
   const [y,m,d] = iso.split('-');
   const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   return `${parseInt(d)} ${months[parseInt(m)-1]} ${parseInt(y)+543}`;
+}
+
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(()=>reject(new Error('timeout')), ms))
+  ]);
+}
+
+/* ---------- Firebase Realtime Database: the real cross-device shared store ---------- */
+function parseLooseObject(text){
+  // Accepts either strict JSON or a plain JS object literal (as Firebase console gives you)
+  const cleaned = text.trim().replace(/^const\s+firebaseConfig\s*=\s*/,'').replace(/;\s*$/,'');
+  return Function('"use strict"; return (' + cleaned + ')')();
+}
+
+function tryInitFirebase(config){
+  if(!config || !config.apiKey || !config.databaseURL) return false;
+  try{
+    if(typeof firebase === 'undefined') return false;
+    if(!firebase.apps || firebase.apps.length === 0){
+      firebase.initializeApp(config);
+    }
+    fbDb = firebase.database();
+    return true;
+  }catch(e){
+    console.error('Firebase init failed', e);
+    return false;
+  }
+}
+
+function listenFirebaseRecords(){
+  fbDb.ref('records').on('value', snap => {
+    const val = snap.val() || {};
+    records = Object.keys(val).map(id => ({ id, ...val[id] }));
+    render();
+  }, err => {
+    console.error('Firebase listener error', err);
+    firebaseReady = false;
+    updateSyncBanner();
+  });
+}
+
+async function fbSaveRecord(record){
+  await withTimeout(fbDb.ref('records/' + record.id).set(record), 8000);
+}
+async function fbUpdateRecord(id, patch){
+  await withTimeout(fbDb.ref('records/' + id).update(patch), 8000);
+}
+async function fbDeleteRecord(id){
+  await withTimeout(fbDb.ref('records/' + id).remove(), 8000);
 }
 
 /* ---------- Storage adapter: shared storage with a local fallback ----------
@@ -414,13 +496,6 @@ function localGet(key){
 }
 function localSet(key, value){
   window.localStorage.setItem(key, JSON.stringify(value));
-}
-
-function withTimeout(promise, ms){
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(()=>reject(new Error('timeout')), ms))
-  ]);
 }
 
 async function loadRecords(){
@@ -479,10 +554,18 @@ async function saveConfig(cfg){
 }
 
 function updateSyncBanner(){
-  if(usingFallback){
-    syncText.textContent = 'บันทึกเฉพาะเครื่องนี้ (ไม่สามารถซิงค์กับผู้อื่นได้ในขณะนี้)';
+  if(firebaseReady){
+    syncDot.style.background = 'var(--stamp-green)';
+    syncText.textContent = 'ข้อมูลซิงค์แบบเรียลไทม์กับทุกคน (ฐานข้อมูลกลาง)';
+    setupDbBtn.style.display = 'none';
+  } else if(usingFallback){
+    syncDot.style.background = 'var(--stamp-red)';
+    syncText.textContent = 'บันทึกเฉพาะเครื่องนี้ ยังไม่เชื่อมต่อฐานข้อมูลกลาง';
+    setupDbBtn.style.display = 'inline';
   } else {
-    syncText.textContent = 'ข้อมูลซิงค์แบบเรียลไทม์กับทุกคนที่เปิดหน้านี้';
+    syncDot.style.background = 'var(--stamp-green)';
+    syncText.textContent = 'ข้อมูลซิงค์แบบเรียลไทม์กับทุกคนที่เปิดหน้านี้ผ่าน Claude.ai';
+    setupDbBtn.style.display = 'inline';
   }
 }
 
@@ -522,30 +605,66 @@ function showToast(msg, isError){
 /* ---------- Settings modal ---------- */
 function openSettings(){
   settingsEndpointInput.value = notifyConfig.endpoint || '';
-  document.querySelector('#settings-backdrop .field').classList.remove('invalid');
+  settingsFbConfigInput.value = firebaseReady ? settingsFbConfigInput.value : (localGet(FB_CONFIG_KEY) ? JSON.stringify(localGet(FB_CONFIG_KEY), null, 2) : '');
+  fbStatusEl.textContent = firebaseReady ? '✓ เชื่อมต่อฐานข้อมูลกลางอยู่' : '';
+  fbStatusEl.style.color = 'var(--stamp-green)';
+  document.querySelectorAll('#settings-backdrop .field').forEach(f=>f.classList.remove('invalid'));
   settingsBackdrop.classList.add('show');
 }
 function closeSettings(){
   settingsBackdrop.classList.remove('show');
 }
 document.getElementById('settings-btn').addEventListener('click', openSettings);
+setupDbBtn.addEventListener('click', openSettings);
 document.getElementById('settings-cancel-btn').addEventListener('click', closeSettings);
 settingsBackdrop.addEventListener('click', e=>{ if(e.target === settingsBackdrop) closeSettings(); });
 document.getElementById('settings-save-btn').addEventListener('click', async ()=>{
-  const val = settingsEndpointInput.value.trim();
-  const field = document.querySelector('#settings-backdrop .field');
-  if(val && !/^https:\/\//.test(val)){
-    field.classList.add('invalid');
+  const endpointField = document.querySelector('.field[data-field="endpoint"]');
+  const fbField = document.querySelector('.field[data-field="fbconfig"]');
+  endpointField.classList.remove('invalid');
+  fbField.classList.remove('invalid');
+
+  const endpointVal = settingsEndpointInput.value.trim();
+  if(endpointVal && !/^https:\/\//.test(endpointVal)){
+    endpointField.classList.add('invalid');
     return;
   }
-  field.classList.remove('invalid');
-  notifyConfig.endpoint = val;
-  try{
-    await saveConfig(notifyConfig);
-    showToast(val ? 'ตั้งค่าการแจ้งเตือนอีเมลแล้ว' : 'ปิดการแจ้งเตือนอีเมลแล้ว');
+
+  const fbText = settingsFbConfigInput.value.trim();
+  let fbConfig = null;
+  if(fbText){
+    try{
+      fbConfig = parseLooseObject(fbText);
+      if(!fbConfig.apiKey || !fbConfig.databaseURL) throw new Error('missing fields');
+    }catch(e){
+      fbField.classList.add('invalid');
+      return;
+    }
+  }
+
+  notifyConfig.endpoint = endpointVal;
+  try{ await saveConfig(notifyConfig); }catch(e){}
+
+  if(fbConfig){
+    fbStatusEl.textContent = 'กำลังเชื่อมต่อ...';
+    fbStatusEl.style.color = 'var(--ink-soft)';
+    const ok = tryInitFirebase(fbConfig);
+    if(ok){
+      localSet(FB_CONFIG_KEY, fbConfig);
+      firebaseReady = true;
+      usingFallback = false;
+      listenFirebaseRecords();
+      updateSyncBanner();
+      showToast('เชื่อมต่อฐานข้อมูลกลางสำเร็จ ข้อมูลจะซิงค์กับทุกคนแล้ว');
+      closeSettings();
+    } else {
+      fbField.classList.add('invalid');
+      fbStatusEl.textContent = 'เชื่อมต่อไม่สำเร็จ ตรวจสอบค่าที่วางอีกครั้ง';
+      fbStatusEl.style.color = 'var(--stamp-red)';
+    }
+  } else {
+    showToast('บันทึกการตั้งค่าแล้ว');
     closeSettings();
-  }catch(e){
-    showToast('บันทึกการตั้งค่าไม่สำเร็จ ลองใหม่อีกครั้ง', true);
   }
 });
 
@@ -683,10 +802,16 @@ form.addEventListener('submit', async (e)=>{
   };
 
   try{
-    records.push(newRecord);
-    justAddedId = newRecord.id;
-    await persist();
-    render();
+    if(firebaseReady){
+      await fbSaveRecord(newRecord);
+      justAddedId = newRecord.id;
+      // records + render() are updated automatically by the realtime listener
+    } else {
+      records.push(newRecord);
+      justAddedId = newRecord.id;
+      await persist();
+      render();
+    }
     closeModal();
     updateSyncBanner();
     showToast('บันทึกรายการยืมแล้ว');
@@ -696,7 +821,7 @@ form.addEventListener('submit', async (e)=>{
       }
     });
   }catch(err){
-    records = records.filter(r => r.id !== newRecord.id);
+    if(!firebaseReady) records = records.filter(r => r.id !== newRecord.id);
     showToast('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', true);
   }finally{
     saveBtn.disabled = false;
@@ -715,11 +840,16 @@ grid.addEventListener('click', async (e)=>{
 
   try{
     if(action === 'return'){
-      const prevDate = rec.returnDate;
-      rec.returnDate = todayStr();
+      const newReturnDate = todayStr();
       justStampedId = id;
-      await persist();
-      render();
+      if(firebaseReady){
+        await fbUpdateRecord(id, { returnDate: newReturnDate });
+        // records + render() updated automatically by the realtime listener
+      } else {
+        rec.returnDate = newReturnDate;
+        await persist();
+        render();
+      }
       showToast('ทำเครื่องหมายคืนแล้ว');
     } else if(action === 'delete'){
       const cardEl = grid.querySelector(`.card[data-id="${id}"]`);
@@ -727,10 +857,14 @@ grid.addEventListener('click', async (e)=>{
         cardEl.classList.add('removing');
         await new Promise(res=>setTimeout(res, 240));
       }
-      const backup = records;
-      records = records.filter(r=>r.id !== id);
-      await persist();
-      render();
+      if(firebaseReady){
+        await fbDeleteRecord(id);
+        // records + render() updated automatically by the realtime listener
+      } else {
+        records = records.filter(r=>r.id !== id);
+        await persist();
+        render();
+      }
       showToast('ลบรายการแล้ว');
     }
   }catch(err){
@@ -754,6 +888,15 @@ document.getElementById('search').addEventListener('input', e=>{
 
 /* ---------- Init + polling for realtime sync ---------- */
 (async function init(){
+  const savedFbConfig = FIREBASE_CONFIG_DEFAULT || localGet(FB_CONFIG_KEY);
+  if(savedFbConfig && tryInitFirebase(savedFbConfig)){
+    firebaseReady = true;
+    notifyConfig = await loadConfig();
+    updateSyncBanner();
+    listenFirebaseRecords(); // render() happens inside the listener callback
+    return;
+  }
+
   records = await loadRecords();
   notifyConfig = await loadConfig();
   lastSnapshot = JSON.stringify(records);
