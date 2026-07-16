@@ -284,7 +284,7 @@
   <div class="toolbar">
     <div class="search-box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="search" placeholder="ค้นหาเลขสารบบ, ผู้ยืม หรือ ตำบล...">
+      <input id="search" placeholder="ค้นหาเลขโฉนด, เลขสารบบ, ผู้ยืม หรือ ตำบล...">
     </div>
     <div class="filters" id="filters">
       <button data-filter="all" class="active">ทั้งหมด</button>
@@ -557,7 +557,7 @@ function matchesFilter(r){
 function matchesSearch(r){
   if(!searchTerm) return true;
   const s = searchTerm.toLowerCase();
-  return r.deedNo.toLowerCase().includes(s) || r.borrowerName.toLowerCase().includes(s) || r.subdistrict.toLowerCase().includes(s);
+  return r.deedNo.toLowerCase().includes(s) || r.surveyPage.toLowerCase().includes(s) || r.borrowerName.toLowerCase().includes(s) || r.subdistrict.toLowerCase().includes(s);
 }
 
 function render(){
