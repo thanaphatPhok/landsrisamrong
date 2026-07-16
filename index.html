@@ -496,8 +496,8 @@ async function notifyByEmail(record){
       body: JSON.stringify({
         subject: `มีการยืมโฉนดที่ดิน เลขที่ ${record.deedNo}`,
         message:
-          `เลขโฉนดที่ดิน: ${record.deedNo}\n` +
-          `เลขหน้าสำรวจ: ${record.surveyPage}\n` +
+          `เลขสารบบ: ${record.deedNo}\n` +
+          `เลขโฉนดที่ดิน: ${record.surveyPage}\n` +
           `ตำบล: ${record.subdistrict}\n` +
           `ผู้ยืม: ${record.borrowerName}\n` +
           `วันที่ยืม: ${fmtDate(record.borrowDate)}`
